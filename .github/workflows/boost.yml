@@ -42,9 +42,9 @@ jobs:
         uses: peaudecastor/boost-security-scanner-github@master-v2
         with:
           action: exec
-          additional_args: --partial --force --log-level=DEBUG --log-level=boost.subprocess.out=DEBUG
+          additional_args: --partial --log-level=DEBUG --log-level=boost.subprocess.out=DEBUG
           api_token: ${{ secrets.BOOST_API_TOKEN }}
-          exec_command: "docker run -v %CWD%:/code presidentbeef/brakeman --format sarif" # an example of using docker to run a SARIF command
+          exec_command: "docker run -v %CWD%:/code presidentbeef/brakeman --format sarif --force" # an example of using docker to run a SARIF command
   complete_scan:
     name: Complete Scan
     needs: [scan_job, brakeman_job]
