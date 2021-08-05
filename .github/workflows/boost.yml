@@ -1,17 +1,13 @@
-# Configuration for github
-# Documentation and options for the plugin are available on Github.
-# https://github.com/peaudecastor/boost-security-scanner-github
-# NOTE: Action requires the following secrets:
-#       AWS_ACCESS_KEY:
-#       AWS_SECRET_ACCESS_KEY:
-#       BOOST_API_TOKEN
 on:
+  workflow_dispatch:
   push:
     branches:
-      - master
+        - master
+        - main
   pull_request:
     branches:
       - master
+      - main
     types:
       - opened
       - synchronize
@@ -22,14 +18,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Login to ECR
-        uses: docker/login-action@v1
+      - name: BoostSecurity Scanner
+        uses: peaudecastor/boost-security-scanner-github@v2
         with:
-          registry: 706352083976.dkr.ecr.us-east-2.amazonaws.com
-          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - name: Scan Repository
-        uses: peaudecastor/boost-security-scanner-github@1.0
-        with:
+          action: scan
+          additional_args: --partial
           api_token: ${{ secrets.BOOST_API_TOKEN }}
-          scanner_image: 706352083976.dkr.ecr.us-east-2.amazonaws.com/checks-runner
+  semgrep_job:
+    name: Semgrep Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Semgrep Scanner
+        uses: peaudecastor/boost-security-scanner-github@v2
+        with:
+          action: exec
+          additional_args: --partial
+          api_token: ${{ secrets.BOOST_API_TOKEN }}
+          exec_command: |
+            docker run -v %CWD%:/src returntocorp/semgrep:0.56.0 --disable-version-check --no-rewrite-rule-ids -q --sarif --config "p/xss"
+  complete_scan:
+    name: Complete Scan
+    needs: [scan_job, semgrep_job]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Complete Scan
+        uses: peaudecastor/boost-security-scanner-github@v2
+        with:
+          action: complete
+          api_token: ${{ secrets.BOOST_API_TOKEN }}
